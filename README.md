@@ -1,16 +1,25 @@
 # Tabular Machine Learning Regression Pipeline
 
-An end-to-end regression pipeline for predicting continuous variables from high-dimensional tabular data. The project covers model comparison, ensemble learning, and rule-based prediction — combining a Gradient Boosting model with an interpretable threshold-based system.
+![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
+![scikit-learn](https://img.shields.io/badge/scikit--learn-1.4.1-orange)
+![License](https://img.shields.io/badge/License-MIT-green)
 
 ---
 
-## Features
+## Overview
 
-- End-to-end regression pipeline on tabular data (273 features, 10k samples)
-- Systematic model comparison across four algorithms
-- Gradient Boosting Regressor for maximum predictive accuracy
-- Rule-based prediction system deployable without any ML runtime
-- Clean, reproducible, well-documented code
+An end-to-end machine learning pipeline for predicting continuous target variables from high-dimensional tabular data. The project combines a Gradient Boosting ensemble model for maximum predictive accuracy with a lightweight rule-based model designed for interpretability and edge deployment — no ML runtime required at inference time.
+
+The pipeline covers the full ML workflow: data loading, model training, evaluation, prediction generation, and reporting.
+
+---
+
+## Problem Description
+
+The task involves predicting two continuous numerical targets (`target01`, `target02`) from a structured dataset of 273 numerical features across 10,000 samples.
+
+- **target01** is predicted using a supervised Gradient Boosting Regressor, selected after benchmarking four candidate models.
+- **target02** exhibits a low-dimensional structure — it depends on only three features and follows a set of simple threshold rules, making it suitable for a rule-based predictor that can run directly on constrained hardware.
 
 ---
 
@@ -19,20 +28,20 @@ An end-to-end regression pipeline for predicting continuous variables from high-
 ```
 .
 ├── data/
-│   ├── train_features.csv       # Training feature matrix (10,000 x 273)
-│   ├── train_targets.csv        # Training targets: target01, target02
-│   └── eval_features.csv        # Evaluation feature matrix (10,000 x 273)
+│   ├── train_features.csv      # Training feature matrix (10,000 × 273)
+│   ├── train_targets.csv       # Training targets: target01, target02
+│   └── eval_features.csv       # Evaluation feature matrix (10,000 × 273)
 │
 ├── predictions/
-│   └── target01_predictions.csv # Model output for target01
+│   └── target01_predictions.csv  # Model predictions for target01
 │
 ├── src/
-│   ├── train_model.py        # Train GB model and generate predictions
-│   ├── predict_target02.py      # Rule-based predictor for target02
-│   └── generate_report.py       # Generate report/project_report.pdf
+│   ├── train_model.py          # Gradient Boosting training and prediction pipeline
+│   ├── predict_target02.py     # Rule-based predictor for target02
+│   └── generate_report.py      # PDF report generation
 │
 ├── report/
-│   └── project_report.pdf       # Full project report
+│   └── project_report.pdf      # Full project report with methodology and results
 │
 ├── README.md
 ├── requirements.txt
@@ -41,60 +50,33 @@ An end-to-end regression pipeline for predicting continuous variables from high-
 
 ---
 
-## Installation
+## Methodology
 
-```bash
-pip install -r requirements.txt
-```
+### Gradient Boosting — target01
 
----
+Four regression models were trained and evaluated on the held-out evaluation set:
 
-## Running the Project
+| Model | RMSE | MAE | R² |
+|---|---|---|---|
+| Decision Tree (depth 3) | 0.1192 | 0.1053 | 0.190 |
+| Ridge Regression | 0.1197 | 0.1055 | 0.184 |
+| Random Forest | 0.1143 | 0.0975 | 0.255 |
+| **Gradient Boosting** | **0.0740** | **0.0652** | **0.688** |
 
-**Train target01 model and generate predictions:**
-```bash
-python src/train_model.py
-```
+Gradient Boosting was selected for its strong generalisation, achieving a 38% reduction in RMSE over the next-best model. It builds an additive ensemble in a forward stage-wise manner — each tree corrects the residuals of the previous ensemble — which makes it highly effective at capturing non-linear feature interactions in tabular data.
 
-**Run the rule-based target02 predictor:**
-```bash
-python src/predict_target02.py --eval_file_path data/eval_features.csv
-```
+**Hyperparameters:**
 
-**Regenerate the PDF report:**
-```bash
-python src/generate_report.py
-```
+| Parameter | Value |
+|---|---|
+| `n_estimators` | 200 |
+| `max_depth` | 4 |
+| `learning_rate` | 0.05 |
+| `random_state` | 42 |
 
----
+### Rule-Based Model — target02
 
-## Results
-
-| Task | Model | RMSE | MAE | R² |
-|---|---|---|---|---|
-| target01 | Gradient Boosting | 0.0740 | 0.0652 | 0.688 |
-| target02 | Rule-based model | 0.4653 | 0.3419 | 0.360 |
-
----
-
-## Model Details
-
-### target01 — Gradient Boosting Regressor
-
-Four models were benchmarked on the held-out evaluation set:
-
-| Model | RMSE | R² |
-|---|---|---|
-| Decision Tree (depth 3) | 0.1192 | 0.190 |
-| Ridge Regression | 0.1197 | 0.184 |
-| Random Forest | 0.1143 | 0.255 |
-| **Gradient Boosting** | **0.0740** | **0.688** |
-
-Final hyperparameters: `n_estimators=200`, `max_depth=4`, `learning_rate=0.05`
-
-### target02 — Rule-Based Model
-
-target02 depends on just three features (`feat_76`, `feat_173`, `feat_97`). Rules were discovered using a depth-3 decision tree and encoded as explicit threshold conditions — no ML library needed at inference time.
+target02 depends on just three features: `feat_76`, `feat_173`, and `feat_97`. A depth-3 decision tree was fitted to identify the optimal split thresholds, then translated into explicit threshold conditions:
 
 ```
 if feat_76 <= 0.20:
@@ -102,35 +84,115 @@ if feat_76 <= 0.20:
 elif feat_76 <= 0.50:
     target02 = 0.82  if feat_173 <= 0.46  else  1.66
 else:
-    if   feat_97 <= 0.29: target02 =  0.04
-    elif feat_97 <= 0.47: target02 = -0.22
-    elif feat_97 <= 0.67: target02 = -0.42
-    else:                  target02 = -0.72
+    if   feat_97 <= 0.29:  target02 =  0.04
+    elif feat_97 <= 0.47:  target02 = -0.22
+    elif feat_97 <= 0.67:  target02 = -0.42
+    else:                   target02 = -0.72
+```
+
+This approach requires no ML library at inference time, making it suitable for deployment on edge devices or embedded systems.
+
+**Results:** RMSE = 0.4653 · MAE = 0.3419 · R² = 0.360
+
+---
+
+## Installation
+
+Requires Python 3.10 or higher.
+
+```bash
+git clone https://github.com/AhmedAli58/tabular-regression-ml.git
+cd tabular-regression-ml
+pip install -r requirements.txt
+```
+
+---
+
+## Running the Project
+
+**Train the Gradient Boosting model and generate target01 predictions:**
+
+```bash
+python src/train_model.py
+```
+
+With explicit paths:
+
+```bash
+python src/train_model.py \
+    --train_features data/train_features.csv \
+    --train_targets  data/train_targets.csv  \
+    --eval_features  data/eval_features.csv  \
+    --output         predictions/target01_predictions.csv
+```
+
+**Run the rule-based target02 predictor:**
+
+```bash
+python src/predict_target02.py --eval_file_path data/eval_features.csv
+```
+
+**Regenerate the PDF report:**
+
+```bash
+python src/generate_report.py
 ```
 
 ---
 
 ## Outputs
 
-Predictions are written to:
+Model predictions are saved to:
 
 ```
 predictions/target01_predictions.csv
+```
+
+The file contains 10,000 rows with a single column `target01`, corresponding row-for-row to `data/eval_features.csv`.
+
+A full project report covering methodology, model selection, results, and analysis is available at:
+
+```
+report/project_report.pdf
 ```
 
 ---
 
 ## Future Improvements
 
-- Cross-validated hyperparameter search (`RandomizedSearchCV`) for target01
-- Feature importance analysis to reduce dimensionality
-- Explore XGBoost / LightGBM as faster alternatives
-- SHAP values for model interpretability
-- Feature engineering and interaction terms
+- **Feature engineering** — construct interaction terms and polynomial features to expose non-linear relationships
+- **Hyperparameter tuning** — apply `RandomizedSearchCV` or Bayesian optimisation for a more thorough search
+- **Cross-validation** — replace single held-out evaluation with k-fold CV for more robust performance estimates
+- **Model stacking** — combine predictions from multiple base models using a meta-learner
+- **Dimensionality reduction** — use feature importance scores or PCA to reduce the 273-feature space
+- **Extended rule-based model** — apply the same rule-discovery approach to target01 for lightweight deployment
 
 ---
 
-## References
+## License
 
-1. Friedman, J. H. (2001). Greedy function approximation: a gradient boosting machine. *Annals of Statistics*, 29(5), 1189–1232.
-2. Pedregosa, F. et al. (2011). Scikit-learn: Machine Learning in Python. *Journal of Machine Learning Research*, 12, 2825–2830.
+This project is licensed under the MIT License.
+
+```
+MIT License
+
+Copyright (c) 2026
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+```
