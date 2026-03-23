@@ -169,5 +169,3 @@ report/project_report.pdf
 
 ---
 
-## License
-MIT License
