@@ -167,5 +167,5 @@ report/project_report.pdf
 - **Dimensionality reduction** — use feature importance scores or PCA to reduce the 273-feature space
 - **Extended rule-based model** — apply the same rule-discovery approach to target01 for lightweight deployment
 
----
+
 
