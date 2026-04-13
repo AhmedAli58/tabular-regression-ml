@@ -2,6 +2,7 @@
 
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
 ![scikit-learn](https://img.shields.io/badge/scikit--learn-1.4.1-orange)
+![pandas](https://img.shields.io/badge/pandas-2.2.1-150458)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
 ## Overview
